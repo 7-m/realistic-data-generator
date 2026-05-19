@@ -1,51 +1,56 @@
-# Datagen
+# realistic-data-generator
 
-Datagen is a Python project that generates ecommerce source data as CSV files. It can create a complete dataset from scratch or append data for a specific day while maintaining related inventory state.
+Generate realistic synthetic business data for analytics, data engineering, testing, and learning. The project currently focuses on an ecommerce-style dataset with a database-first generation flow.
 
 ## What it generates
 
-The generator writes CSV files into `output/`:
+The generator produces a linked business dataset covering:
 
-- `customers.csv`
-- `products.csv`
-- `warehouses.csv`
-- `orders.csv`
-- `order_items.csv`
-- `payments.csv`
-- `shipments.csv`
-- `inventory_balances.csv`
-- `inventory_movements.csv`
+- customers
+- products
+- warehouses
+- orders
+- order items
+- payments
+- shipments
+- inventory balances
+- inventory movements
 
-## Project structure
+All output is written to a database. The bundled backend uses SQLite, but the generation flow is designed so other database backends can be added by implementing the same backend contract.
 
-- `main.py` — command-line entry point and run orchestration
-- `src/config.py` — default sizes, paths, and constants
-- `src/generators.py` — customer and product generation
-- `src/inventory.py` — warehouse setup and stock reservation/restock helpers
-- `src/models.py` — dataclass definitions for generated records
-- `src/reference_data.py` — fixed categorical values used by the generator
-- `src/simulator.py` — order, payment, shipment, and inventory movement simulation
-- `src/writers.py` — CSV reading/writing and dataclass loading helpers
-- `schema.md` — documented schema and table relationships
+## Database-first architecture
+
+The codebase no longer supports CSV output. Runtime generation always persists data through a database backend.
+
+Current backend responsibilities include:
+
+- creating and resetting tables
+- inserting generated rows
+- loading existing reference and inventory data
+- generating next IDs from database state
+- checking whether a date already has orders
+- running safe delete simulations for unused reference data
+
+### Plugging in another database
+
+`main.py` depends on the backend interface rather than on SQLite-specific logic. To add another database, create a backend class that exposes the same methods as `SQLiteBackend` in `src/database.py`, then wire it into the backend factory in `main.py`.
+
+This keeps the generator database-independent while still shipping with a working default implementation.
 
 ## How to run
 
 ### Full regeneration
 
-Generate all datasets from scratch:
-
 ```bash
-python main.py --reset
+python3 main.py --reset
 ```
 
 If no arguments are provided, the default behavior is also a full regeneration.
 
 ### Daily incremental generation
 
-Generate data for a specific date and append it to the existing dataset:
-
 ```bash
-python main.py --date 2024-01-15 --orders 100
+python3 main.py --date 2024-01-15 --orders 100
 ```
 
 Useful flags:
@@ -54,28 +59,33 @@ Useful flags:
 - `--orders N` — number of orders to create for that day
 - `--force` — append even if rows for that date already exist
 - `--reset` — regenerate everything from scratch
+- `--db-path PATH` — SQLite database file path
+- `--customer-delete-probability` — chance of deleting eligible customers during a daily DB run
+- `--product-delete-probability` — chance of deleting eligible products during a daily DB run
+- `--warehouse-delete-probability` — chance of deleting eligible warehouses during a daily DB run
+
+## Default database
+
+The bundled backend stores data in SQLite at `output/datagen.sqlite` by default.
+
+## Project structure
+
+- `main.py` — command-line entry point and run orchestration
+- `src/config.py` — default sizes, paths, and constants
+- `src/generators.py` — customer and product generation
+- `src/inventory.py` — warehouse setup and stock reservation/restock helpers
+- `src/database.py` — database backend and operations
+- `src/models.py` — dataclass definitions for generated records
+- `src/reference_data.py` — fixed categorical values used by the generator
+- `src/simulator.py` — order, payment, shipment, and inventory movement simulation
+- `schema.md` — documented schema and table relationships
 
 ## Generation flow
 
-1. Customers, products, and warehouses are created as reference data.
-2. Orders are generated with linked order items.
-3. Payments and shipments are simulated based on order status.
-4. For daily runs, inventory balances are loaded or created, stock is reserved/deducted, and inventory movements are written.
-
-## Configuration
-
-Defaults live in `src/config.py`:
-
-- `DEFAULT_CUSTOMERS`
-- `DEFAULT_PRODUCTS`
-- `DEFAULT_ORDERS`
-- `DEFAULT_WAREHOUSES`
-- `DEFAULT_INITIAL_STOCK_MIN`
-- `DEFAULT_INITIAL_STOCK_MAX`
-- `DEFAULT_REORDER_POINT`
-- `DEFAULT_REORDER_QUANTITY`
-- `SEED`
-- `OUTPUT_DIR`
+1. Reference data such as customers, products, and warehouses is created or loaded from the database.
+2. Full runs generate orders, order items, payments, and shipments.
+3. Daily runs reuse existing data when available, generate inventory balances if needed, and simulate stock reservation, release, shipment deduction, and restock movements.
+4. The backend persists rows and can optionally perform safe delete simulations for unused records.
 
 ## Schema reference
 
