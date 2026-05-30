@@ -1,0 +1,8 @@
+SQLAlchemy>=2.0
+pytest>=8.0
+
+# Driver per backend (uncomment the one you need; sqlite needs no driver):
+# pymysql            # MySQL/MariaDB  -> --db-url "mysql+pymysql://..."
+# psycopg[binary]    # PostgreSQL     -> --db-url "postgresql+psycopg://..."
+# cx_Oracle          # Oracle         -> --db-url "oracle+cx_oracle://..."
+# pyodbc             # SQL Server     -> --db-url "mssql+pyodbc://..."

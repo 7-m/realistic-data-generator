@@ -12,6 +12,7 @@ class Customer:
     created_at: datetime
     city: str
     country: str
+    deleted_at: datetime | None = None
 
 
 @dataclass
@@ -22,6 +23,7 @@ class Product:
     brand: str
     unit_price: float
     unit_cost: float
+    deleted_at: datetime | None = None
 
 
 @dataclass
@@ -71,6 +73,7 @@ class Warehouse:
     warehouse_name: str
     city: str
     country: str
+    deleted_at: datetime | None = None
 
 
 @dataclass
@@ -96,3 +99,13 @@ class InventoryMovement:
     quantity_change: int
     movement_created_at: datetime
     reason: str
+
+
+@dataclass
+class Return:
+    return_id: int
+    order_item_id: int
+    quantity_returned: int
+    returned_at: datetime
+    return_reason: str
+    refund_amount: float
